@@ -2,10 +2,17 @@ import 'dart:math';
 
 import 'package:english_words/english_words.dart';
 import 'package:englist_card_app/models/english_today.dart';
+import 'package:englist_card_app/pages/all_words_page.dart';
+import 'package:englist_card_app/pages/control_page.dart';
 import 'package:englist_card_app/values/app_assets.dart';
 import 'package:englist_card_app/values/app_colors.dart';
 import 'package:englist_card_app/values/app_styles.dart';
+import 'package:englist_card_app/values/share_keys.dart';
+import 'package:englist_card_app/widgets/app_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -40,31 +47,38 @@ class _HomePageState extends State<HomePage> {
     return newList;
   }
 
-  getEnglishToday() {
+  getEnglishToday() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int len = prefs.getInt(ShareKeys.counter) ?? 5;
     List<String> newList = [];
-    List<int> rans = fixedListRandom(len: 5, max: nouns.length);
+    List<int> rans = fixedListRandom(len: len, max: nouns.length);
     rans.forEach((element) {
       newList.add(nouns[element]);
     });
 
-    words = newList
-        .map((e) => EnglishToday(
-              noun: e,
-            ))
-        .toList();
+    setState(() {
+      words = newList
+          .map((e) => EnglishToday(
+                noun: e,
+              ))
+          .toList();
+    });
   }
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     _pageController = PageController(viewportFraction: 0.9);
-    getEnglishToday();
     super.initState();
+    getEnglishToday();
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.whiteGray,
       appBar: AppBar(
         backgroundColor: AppColors.whiteGray,
@@ -75,10 +89,12 @@ class _HomePageState extends State<HomePage> {
             color: Colors.black,
           ),
         ),
-        // leading: InkWell(
-        //   onTap: () {},
-        //   child: Image.asset(AppAssets.menu),
-        // ),
+        leading: InkWell(
+          onTap: () {
+            _scaffoldKey.currentState?.openDrawer();
+          },
+          child: Image.asset(AppAssets.menu),
+        ),
       ),
       body: Container(
         width: double.infinity,
@@ -115,81 +131,98 @@ class _HomePageState extends State<HomePage> {
                     leftLetter = leftLetter.substring(1, leftLetter.length);
                     return Padding(
                       padding: const EdgeInsets.all(5.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                            color: AppColors.primaryColor,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black26,
-                                  offset: Offset(3, 6),
-                                  blurRadius: 6)
-                            ],
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(24))),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              alignment: Alignment.centerRight,
-                              child: Image.asset(AppAssets.heart),
-                            ),
-                            RichText(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.start,
-                                text: TextSpan(
-                                    text: firstLetter,
-                                    style: TextStyle(
-                                        fontFamily: FontFamily.sen,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize:
-                                            AppStyle.scaleRatio(context, 96),
-                                        shadows: const [
-                                          BoxShadow(
-                                              color: Colors.black38,
-                                              offset: Offset(3, 6),
-                                              blurRadius: 6),
-                                        ]),
-                                    children: [
-                                      TextSpan(
-                                        text: leftLetter,
+                      child: Material(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                        color: AppColors.primaryColor,
+                        elevation: 4,
+                        child: InkWell(
+                          onTap: () {},
+                          splashColor: Color.fromARGB(214, 255, 149, 184),
+                          borderRadius: BorderRadius.all(Radius.circular(24)),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  alignment: Alignment.centerRight,
+                                  child: Image.asset(AppAssets.heart),
+                                ),
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: <Widget>[
+                                    Text(
+                                      firstLetter,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontFamily: FontFamily.sen,
+                                          color: AppColors.whiteGray,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize:
+                                              AppStyle.scaleRatio(context, 96),
+                                          shadows: const [
+                                            Shadow(
+                                                color: Colors.black38,
+                                                offset: Offset(3, 6),
+                                                blurRadius: 6),
+                                          ]),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        leftLetter,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.start,
                                         style: TextStyle(
-                                            fontFamily: FontFamily.sen,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: AppStyle.scaleRatio(
-                                                context, 54)),
+                                          fontFamily: FontFamily.sen,
+                                          color: AppColors.whiteGray,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize:
+                                              AppStyle.scaleRatio(context, 50),
+                                        ),
+                                        softWrap: true,
                                       ),
-                                    ])),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 30),
-                              child: Text(
-                                  '"Think of all the beauty still left around you and be happy."',
-                                  style: AppStyle.getSize(
-                                          context, AppStyle.h4.fontSize)
-                                      .copyWith(
-                                          color: Colors.black,
-                                          letterSpacing: 1)),
-                            )
-                          ],
+                                    ),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 20),
+                                  child: Text(
+                                      '"Think of all the beauty still left around you and be happy."',
+                                      style: AppStyle.getSize(
+                                              context, AppStyle.h4.fontSize)
+                                          .copyWith(
+                                              color: Colors.black,
+                                              letterSpacing: 1)),
+                                )
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     );
                   })),
             ),
-            SizedBox(
-                height: size.height * 1 / 24,
-                child: Container(
-                  alignment: Alignment.center,
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  child: ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: 5,
-                      itemBuilder: ((context, index) {
-                        return buildIndicator(index == _currentIndex, size);
-                      })),
-                ))
+            _currentIndex >= 5
+                ? buildShowMore()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 26),
+                    child: SizedBox(
+                        height: size.height * 1 / 24,
+                        child: Container(
+                          alignment: Alignment.center,
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              scrollDirection: Axis.horizontal,
+                              itemCount: 5,
+                              itemBuilder: ((context, index) {
+                                return buildIndicator(
+                                    index == _currentIndex, size);
+                              })),
+                        )),
+                  )
           ],
         ),
       ),
@@ -215,6 +248,25 @@ class _HomePageState extends State<HomePage> {
                       context,
                       AppStyle.h3.fontSize,
                     ).copyWith(color: AppColors.textColor)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: AppButton(
+                    label: 'Favorites',
+                    onTap: () {
+                      print('Favorites');
+                    }),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: AppButton(
+                    label: 'Your control',
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ControlPage()));
+                    }),
               )
             ],
           ),
@@ -224,7 +276,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget buildIndicator(bool isActive, Size size) {
-    return Container(
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300),
+      curve: Curves.bounceInOut,
       height: 8,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       width: isActive ? size.width * 1 / 5 : 24,
@@ -235,6 +289,34 @@ class _HomePageState extends State<HomePage> {
             BoxShadow(
                 color: Colors.black38, offset: Offset(2, 3), blurRadius: 3)
           ]),
+    );
+  }
+
+  Widget buildShowMore() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      alignment: Alignment.bottomLeft,
+      child: Material(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+        elevation: 4,
+        color: AppColors.primaryColor,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => AllWordsPage(words: words)));
+          },
+          splashColor: Colors.black38,
+          borderRadius: BorderRadius.all(Radius.circular(24)),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Text(
+              'Show more',
+              style: AppStyle.getSize(context, AppStyle.h5.fontSize)
+                  .copyWith(color: AppColors.textColor),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
