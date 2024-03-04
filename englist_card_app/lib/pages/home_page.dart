@@ -4,14 +4,13 @@ import 'package:english_words/english_words.dart';
 import 'package:englist_card_app/models/english_today.dart';
 import 'package:englist_card_app/pages/all_words_page.dart';
 import 'package:englist_card_app/pages/control_page.dart';
+import 'package:englist_card_app/pages/favorites_page.dart';
 import 'package:englist_card_app/values/app_assets.dart';
 import 'package:englist_card_app/values/app_colors.dart';
 import 'package:englist_card_app/values/app_styles.dart';
 import 'package:englist_card_app/values/share_keys.dart';
 import 'package:englist_card_app/widgets/app_button.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -24,8 +23,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   late PageController _pageController;
+  int _count = 0;
+  late SharedPreferences favorites;
 
   List<EnglishToday> words = [];
+  List<EnglishToday> favoritesList = [];
 
   List<int> fixedListRandom({int len = 1, int max = 120, int min = 1}) {
     if (len > max || len < min) {
@@ -65,6 +67,14 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _loadFavorites() async {
+    favorites = await SharedPreferences.getInstance();
+
+    setState(() {
+      _count = favorites.getInt(ShareKeys.keyFavorites) ?? 0;
+    });
+  }
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -72,6 +82,7 @@ class _HomePageState extends State<HomePage> {
     _pageController = PageController(viewportFraction: 0.9);
     super.initState();
     getEnglishToday();
+    _loadFavorites();
   }
 
   @override
@@ -129,16 +140,19 @@ class _HomePageState extends State<HomePage> {
                     String leftLetter =
                         words[index].noun != null ? words[index].noun! : '';
                     leftLetter = leftLetter.substring(1, leftLetter.length);
+
                     return Padding(
                       padding: const EdgeInsets.all(5.0),
                       child: Material(
-                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(24)),
                         color: AppColors.primaryColor,
                         elevation: 4,
                         child: InkWell(
-                          onTap: () {},
-                          splashColor: Color.fromARGB(214, 255, 149, 184),
-                          borderRadius: BorderRadius.all(Radius.circular(24)),
+                          onDoubleTap: () {},
+                          splashColor: const Color.fromARGB(214, 255, 149, 184),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(24)),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -146,7 +160,30 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 Container(
                                   alignment: Alignment.centerRight,
-                                  child: Image.asset(AppAssets.heart),
+                                  child: InkWell(
+                                    onTap: () async {
+                                      favorites =
+                                          await SharedPreferences.getInstance();
+                                      await favorites.setInt(
+                                          ShareKeys.keyFavorites, _count);
+                                      setState(() {
+                                        words[index].isFavorite =
+                                            !words[index].isFavorite;
+                                      });
+                                      setState(() {
+                                        words[index].isFavorite
+                                            ? favoritesList.add(words[index])
+                                            : favoritesList
+                                                .remove(words[index]);
+                                      });
+                                    },
+                                    child: Image.asset(
+                                      AppAssets.heart,
+                                      color: words[index].isFavorite
+                                          ? Colors.pinkAccent
+                                          : Colors.white,
+                                    ),
+                                  ),
                                 ),
                                 Row(
                                   crossAxisAlignment:
@@ -254,7 +291,12 @@ class _HomePageState extends State<HomePage> {
                 child: AppButton(
                     label: 'Favorites',
                     onTap: () {
-                      print('Favorites');
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => FavoritesPage(
+                                    favoritesList: favoritesList,
+                                  )));
                     }),
               ),
               Padding(
@@ -277,7 +319,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget buildIndicator(bool isActive, Size size) {
     return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.bounceInOut,
       height: 8,
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -297,7 +339,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       alignment: Alignment.bottomLeft,
       child: Material(
-        borderRadius: BorderRadius.all(Radius.circular(24)),
+        borderRadius: const BorderRadius.all(Radius.circular(24)),
         elevation: 4,
         color: AppColors.primaryColor,
         child: InkWell(
@@ -306,9 +348,9 @@ class _HomePageState extends State<HomePage> {
                 MaterialPageRoute(builder: (_) => AllWordsPage(words: words)));
           },
           splashColor: Colors.black38,
-          borderRadius: BorderRadius.all(Radius.circular(24)),
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             child: Text(
               'Show more',
               style: AppStyle.getSize(context, AppStyle.h5.fontSize)

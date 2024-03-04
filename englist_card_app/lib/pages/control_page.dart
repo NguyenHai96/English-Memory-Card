@@ -69,12 +69,11 @@ class _ControlPageState extends State<ControlPage> {
             ),
             Slider(
                 value: sliderValue,
-                min: 5,
+                min: 1,
                 max: 100,
                 divisions: 95,
                 activeColor: AppColors.primaryColor,
                 onChanged: (value) {
-                  print(value);
                   setState(() {
                     sliderValue = value;
                   });
