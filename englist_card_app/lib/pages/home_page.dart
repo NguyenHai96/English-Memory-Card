@@ -1,11 +1,19 @@
+// ignore_for_file: collection_methods_unrelated_type
+
 import 'dart:math';
 
 import 'package:english_words/english_words.dart';
 import 'package:englist_card_app/models/english_today.dart';
+import 'package:englist_card_app/pages/all_words_page.dart';
+import 'package:englist_card_app/pages/control_page.dart';
+import 'package:englist_card_app/pages/favorites_page.dart';
 import 'package:englist_card_app/values/app_assets.dart';
 import 'package:englist_card_app/values/app_colors.dart';
 import 'package:englist_card_app/values/app_styles.dart';
+import 'package:englist_card_app/values/share_keys.dart';
+import 'package:englist_card_app/widgets/app_button.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,9 +38,7 @@ class _HomePageState extends State<HomePage> {
     int count = 1;
     while (count <= len) {
       int val = random.nextInt(max);
-      if (newList.contains(val)) {
-        continue;
-      } else {
+      if (!newList.contains(val)) {
         newList.add(val);
         count++;
       }
@@ -40,31 +46,37 @@ class _HomePageState extends State<HomePage> {
     return newList;
   }
 
-  getEnglishToday() {
-    List<String> newList = [];
-    List<int> rans = fixedListRandom(len: 5, max: nouns.length);
+  getEnglishToday() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int len = prefs.getInt(ShareKeys.counter) ?? 5;
+    List<EnglishToday> newList = [];
+    List<int> rans = fixedListRandom(len: len, max: nouns.length);
     rans.forEach((element) {
-      newList.add(nouns[element]);
+      newList.add(EnglishToday(
+        noun: nouns[element],
+        id: element.toString(),
+      ));
     });
 
-    words = newList
-        .map((e) => EnglishToday(
-              noun: e,
-            ))
-        .toList();
+    setState(() {
+      words = newList.toList();
+    });
   }
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     _pageController = PageController(viewportFraction: 0.9);
-    getEnglishToday();
     super.initState();
+    getEnglishToday();
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.whiteGray,
       appBar: AppBar(
         backgroundColor: AppColors.whiteGray,
@@ -75,10 +87,12 @@ class _HomePageState extends State<HomePage> {
             color: Colors.black,
           ),
         ),
-        // leading: InkWell(
-        //   onTap: () {},
-        //   child: Image.asset(AppAssets.menu),
-        // ),
+        leading: InkWell(
+          onTap: () {
+            _scaffoldKey.currentState?.openDrawer();
+          },
+          child: Image.asset(AppAssets.menu),
+        ),
       ),
       body: Container(
         width: double.infinity,
@@ -113,83 +127,138 @@ class _HomePageState extends State<HomePage> {
                     String leftLetter =
                         words[index].noun != null ? words[index].noun! : '';
                     leftLetter = leftLetter.substring(1, leftLetter.length);
+
                     return Padding(
                       padding: const EdgeInsets.all(5.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                            color: AppColors.primaryColor,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black26,
-                                  offset: Offset(3, 6),
-                                  blurRadius: 6)
-                            ],
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(24))),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              alignment: Alignment.centerRight,
-                              child: Image.asset(AppAssets.heart),
-                            ),
-                            RichText(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.start,
-                                text: TextSpan(
-                                    text: firstLetter,
-                                    style: TextStyle(
-                                        fontFamily: FontFamily.sen,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize:
-                                            AppStyle.scaleRatio(context, 96),
-                                        shadows: const [
-                                          BoxShadow(
-                                              color: Colors.black38,
-                                              offset: Offset(3, 6),
-                                              blurRadius: 6),
-                                        ]),
-                                    children: [
-                                      TextSpan(
-                                        text: leftLetter,
+                      child: Material(
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(24)),
+                        color: AppColors.primaryColor,
+                        elevation: 4,
+                        child: InkWell(
+                          onDoubleTap: () {},
+                          splashColor: const Color.fromARGB(214, 255, 149, 184),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(24)),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  alignment: Alignment.centerRight,
+                                  child: InkWell(
+                                    onTap: () async {
+                                      SharedPreferences sharePrefe =
+                                          await SharedPreferences.getInstance();
+                                      List<String>? localFavoriteIds =
+                                          sharePrefe.getStringList(
+                                                  ShareKeys.countFavorites) ??
+                                              [];
+                                      setState(() {
+                                        words[index].isFavorite =
+                                            !words[index].isFavorite;
+                                      });
+                                      if (words[index].isFavorite) {
+                                        if (!localFavoriteIds
+                                            .contains(words[index].id)) {
+                                          localFavoriteIds
+                                              .add(words[index].id.toString());
+                                        }
+                                      } else {
+                                        if (localFavoriteIds
+                                            .contains(words[index].id)) {
+                                          localFavoriteIds.remove(
+                                              words[index].id.toString());
+                                        }
+                                      }
+                                      await sharePrefe.setStringList(
+                                          ShareKeys.countFavorites,
+                                          localFavoriteIds);
+                                    },
+                                    child: Image.asset(
+                                      AppAssets.heart,
+                                      color: words[index].isFavorite
+                                          ? Colors.pinkAccent
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: <Widget>[
+                                    Text(
+                                      firstLetter,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontFamily: FontFamily.sen,
+                                          color: AppColors.whiteGray,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize:
+                                              AppStyle.scaleRatio(context, 96),
+                                          shadows: const [
+                                            Shadow(
+                                                color: Colors.black38,
+                                                offset: Offset(3, 6),
+                                                blurRadius: 6),
+                                          ]),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        leftLetter,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.start,
                                         style: TextStyle(
-                                            fontFamily: FontFamily.sen,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: AppStyle.scaleRatio(
-                                                context, 54)),
+                                          fontFamily: FontFamily.sen,
+                                          color: AppColors.whiteGray,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize:
+                                              AppStyle.scaleRatio(context, 50),
+                                        ),
+                                        softWrap: true,
                                       ),
-                                    ])),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 30),
-                              child: Text(
-                                  '"Think of all the beauty still left around you and be happy."',
-                                  style: AppStyle.getSize(
-                                          context, AppStyle.h4.fontSize)
-                                      .copyWith(
-                                          color: Colors.black,
-                                          letterSpacing: 1)),
-                            )
-                          ],
+                                    ),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 20),
+                                  child: Text(
+                                      '"Think of all the beauty still left around you and be happy."',
+                                      style: AppStyle.getSize(
+                                              context, AppStyle.h4.fontSize)
+                                          .copyWith(
+                                              color: Colors.black,
+                                              letterSpacing: 1)),
+                                )
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     );
                   })),
             ),
-            SizedBox(
-                height: size.height * 1 / 24,
-                child: Container(
-                  alignment: Alignment.center,
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  child: ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: 5,
-                      itemBuilder: ((context, index) {
-                        return buildIndicator(index == _currentIndex, size);
-                      })),
-                ))
+            _currentIndex >= 5
+                ? buildShowMore()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 26),
+                    child: SizedBox(
+                        height: size.height * 1 / 24,
+                        child: Container(
+                          alignment: Alignment.center,
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              scrollDirection: Axis.horizontal,
+                              itemCount: 5,
+                              itemBuilder: ((context, index) {
+                                return buildIndicator(
+                                    index == _currentIndex, size);
+                              })),
+                        )),
+                  )
           ],
         ),
       ),
@@ -215,6 +284,28 @@ class _HomePageState extends State<HomePage> {
                       context,
                       AppStyle.h3.fontSize,
                     ).copyWith(color: AppColors.textColor)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: AppButton(
+                    label: 'Favorites',
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const FavoritesPage()));
+                    }),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: AppButton(
+                    label: 'Your control',
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ControlPage()));
+                    }),
               )
             ],
           ),
@@ -224,7 +315,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget buildIndicator(bool isActive, Size size) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.bounceInOut,
       height: 8,
       margin: const EdgeInsets.symmetric(horizontal: 16),
       width: isActive ? size.width * 1 / 5 : 24,
@@ -235,6 +328,34 @@ class _HomePageState extends State<HomePage> {
             BoxShadow(
                 color: Colors.black38, offset: Offset(2, 3), blurRadius: 3)
           ]),
+    );
+  }
+
+  Widget buildShowMore() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      alignment: Alignment.bottomLeft,
+      child: Material(
+        borderRadius: const BorderRadius.all(Radius.circular(24)),
+        elevation: 4,
+        color: AppColors.primaryColor,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => AllWordsPage(words: words)));
+          },
+          splashColor: Colors.black38,
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Text(
+              'Show more',
+              style: AppStyle.getSize(context, AppStyle.h5.fontSize)
+                  .copyWith(color: AppColors.textColor),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

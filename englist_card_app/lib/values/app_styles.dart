@@ -21,8 +21,12 @@ class AppStyle {
       TextStyle(fontFamily: FontFamily.sen, fontSize: 13, color: Colors.white);
   static TextStyle h6 = TextStyle(
       fontFamily: FontFamily.sen, fontSize: 9.89, color: Colors.white);
+  static TextStyle h7 =
+      TextStyle(fontFamily: FontFamily.sen, fontSize: 18, color: Colors.white);
   static TextStyle englishToday =
-      TextStyle(fontFamily: FontFamily.sen, fontSize: 36, color: Colors.white);
+      TextStyle(fontFamily: FontFamily.sen, fontSize: 40, color: Colors.white);
+  static TextStyle h150 =
+      TextStyle(fontFamily: FontFamily.sen, fontSize: 150, color: Colors.white);
 
   static TextStyle getSize(BuildContext context, double? size) {
     double screenWidth = MediaQuery.of(context).size.width;
