@@ -54,7 +54,7 @@ class LandingPage extends StatelessWidget {
                 onPressed: () {
                   Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (_) => HomePage()),
+                      MaterialPageRoute(builder: (_) => const HomePage()),
                       (route) => false);
                 },
                 child: Image.asset(AppAssets.rightArrow),
