@@ -9,35 +9,38 @@ import 'package:englist_card_app/values/share_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FavoritesPage extends StatelessWidget {
-  List<EnglishToday> favoritesList;
-  FavoritesPage({super.key, required this.favoritesList});
-  late SharedPreferences _countFavorites;
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
 
-  getEnglishToday() async {
-    SharedPreferences favorites = await SharedPreferences.getInstance();
-    int len = favorites.getInt(ShareKeys.keyFavorites) ?? 0;
-    List<String> newList = [];
-    for (int i = 0; i < len; i++) {
-      if (len < 0) {
-        return [];
-      } else {
-        newList.add(nouns[i]);
-      }
-    }
-    ;
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
 
-    favoritesList = newList
-        .map((e) => EnglishToday(
-              noun: e,
-            ))
-        .toList();
+class _FavoritesPageState extends State<FavoritesPage> {
+  late List<EnglishToday> favoritesList = [];
+  int count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    getEnglishToday();
   }
 
-  initDefaultValue() async {
-    _countFavorites = await SharedPreferences.getInstance();
-    int value = _countFavorites.getInt(ShareKeys.countFavorites) ??
-        favoritesList.length;
+  getEnglishToday() async {
+    SharedPreferences sharePrefe = await SharedPreferences.getInstance();
+    List<String>? localFavoriteIds =
+        sharePrefe.getStringList(ShareKeys.countFavorites) ?? [];
+    print('localFavoriteIds ->>> {$localFavoriteIds}');
+    List<int> listInt = localFavoriteIds.map(int.parse).toList();
+    List<EnglishToday> newList = [];
+    listInt.forEach(
+      (element) {
+        newList.add(EnglishToday(noun: nouns[element].toString()));
+      },
+    );
+    setState(() {
+      favoritesList = newList.toList();
+    });
   }
 
   @override
@@ -52,9 +55,6 @@ class FavoritesPage extends StatelessWidget {
         ),
         leading: InkWell(
           onTap: () async {
-            _countFavorites = await SharedPreferences.getInstance();
-            await _countFavorites.setInt(
-                ShareKeys.countFavorites, favoritesList.length);
             Navigator.pop(context);
           },
           child: Image.asset(AppAssets.leftArrow),
@@ -79,12 +79,7 @@ class FavoritesPage extends StatelessWidget {
                           color: AppColors.textColor,
                           fontWeight: FontWeight.bold),
                 ),
-                leading: Icon(
-                  Icons.favorite,
-                  color: favoritesList[index].isFavorite
-                      ? Colors.pinkAccent
-                      : Colors.grey,
-                )),
+                leading: Icon(Icons.favorite, color: Colors.pinkAccent)),
           );
         },
       ),

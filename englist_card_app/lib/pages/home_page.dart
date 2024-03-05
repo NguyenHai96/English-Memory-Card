@@ -23,7 +23,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   late PageController _pageController;
-  int _count = 0;
   late SharedPreferences favorites;
 
   List<EnglishToday> words = [];
@@ -52,26 +51,17 @@ class _HomePageState extends State<HomePage> {
   getEnglishToday() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int len = prefs.getInt(ShareKeys.counter) ?? 5;
-    List<String> newList = [];
+    List<EnglishToday> newList = [];
     List<int> rans = fixedListRandom(len: len, max: nouns.length);
     rans.forEach((element) {
-      newList.add(nouns[element]);
+      newList.add(EnglishToday(
+        noun: nouns[element],
+        id: element.toString(),
+      ));
     });
 
     setState(() {
-      words = newList
-          .map((e) => EnglishToday(
-                noun: e,
-              ))
-          .toList();
-    });
-  }
-
-  void _loadFavorites() async {
-    favorites = await SharedPreferences.getInstance();
-
-    setState(() {
-      _count = favorites.getInt(ShareKeys.keyFavorites) ?? 0;
+      words = newList.toList();
     });
   }
 
@@ -82,7 +72,6 @@ class _HomePageState extends State<HomePage> {
     _pageController = PageController(viewportFraction: 0.9);
     super.initState();
     getEnglishToday();
-    _loadFavorites();
   }
 
   @override
@@ -162,20 +151,48 @@ class _HomePageState extends State<HomePage> {
                                   alignment: Alignment.centerRight,
                                   child: InkWell(
                                     onTap: () async {
-                                      favorites =
+                                      SharedPreferences sharePrefe =
                                           await SharedPreferences.getInstance();
-                                      await favorites.setInt(
-                                          ShareKeys.keyFavorites, _count);
+                                      List<String>? localFavoriteIds =
+                                          sharePrefe.getStringList(
+                                                  ShareKeys.countFavorites) ??
+                                              [];
+                                      List<String> favoriteIdsCopy = [];
+                                      favoriteIdsCopy.addAll(localFavoriteIds);
                                       setState(() {
                                         words[index].isFavorite =
                                             !words[index].isFavorite;
                                       });
-                                      setState(() {
-                                        words[index].isFavorite
-                                            ? favoritesList.add(words[index])
-                                            : favoritesList
-                                                .remove(words[index]);
-                                      });
+                                      if (words[index].isFavorite) {
+                                        favoritesList.add(words[index]);
+                                      } else {
+                                        favoritesList.remove(words[index]);
+                                      }
+                                      List<String> favoriteIds = favoritesList
+                                          .where(
+                                              (element) => element.id != null)
+                                          .map((e) => e.id!)
+                                          .toList();
+                                      for (var element in favoriteIdsCopy) {
+                                        if (favoriteIds.contains(element)) {
+                                          continue;
+                                        } else {
+                                          favoriteIds.add(element);
+                                        }
+                                      }
+                                      for (int j = 0; j < words.length; j++) {
+                                        for (int i = 0;
+                                            i < favoriteIds.length;
+                                            i++) {
+                                          if (words[j].isFavorite == false &&
+                                              words[j].id == favoriteIds[i]) {
+                                            favoriteIds.removeAt(i);
+                                          }
+                                        }
+                                      }
+                                      await sharePrefe.setStringList(
+                                          ShareKeys.countFavorites,
+                                          favoriteIds);
                                     },
                                     child: Image.asset(
                                       AppAssets.heart,
@@ -291,12 +308,8 @@ class _HomePageState extends State<HomePage> {
                 child: AppButton(
                     label: 'Favorites',
                     onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => FavoritesPage(
-                                    favoritesList: favoritesList,
-                                  )));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => FavoritesPage()));
                     }),
               ),
               Padding(
